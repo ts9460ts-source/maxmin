@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>オンラインランキング</title>
+    <style>
+        body { font-family: 'Hiragino Kaku Gothic ProN', 'メイリオ', sans-serif; line-height: 1.6; background-color: #f0f4f8; color: #333; }
+        .container { max-width: 800px; margin: 20px auto; padding: 25px; background-color: #fff; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #2c3e50; }
+        .tab-buttons { text-align: center; margin-bottom: 20px; }
+        .tab-btn { padding: 10px 20px; font-size: 16px; cursor: pointer; border: 1px solid #ccc; background-color: #f2f2f2; border-radius: 5px; margin: 0 5px; }
+        .tab-btn.active { background-color: #34495e; color: white; border-color: #34495e; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px; border: 1px solid #ddd; text-align: center; }
+        th { background-color: #34495e; color: white; }
+        tr:nth-child(even) { background-color: #f2f2f2; }
+        .loader { text-align: center; padding: 40px; font-size: 1.2em; }
+        .back-link { display: block; text-align: center; margin-top: 25px; }
+        .btn { display: inline-block; padding: 10px 20px; font-size: 16px; color: #fff; background-color: #3498db; border-radius: 5px; text-decoration: none; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>オンラインランキング 🏆</h1>
+    <div class="tab-buttons">
+        <button class="tab-btn active" onclick="showRanking(1)">レベル 1</button>
+        <button class="tab-btn" onclick="showRanking(2)">レベル 2</button>
+    </div>
+    <table id="ranking-table">
+        <thead><tr><th>順位</th><th>ニックネーム</th><th>スコア</th></tr></thead>
+        <tbody></tbody>
+    </table>
+    <div class="back-link"><a href="game.html" class="btn">ゲームに戻る</a></div>
+</div>
+<script>
+    // =========================================================================
+    // ★★★【重要】ここにGASのウェブアプリURLを貼り付けてください ★★★
+    const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwgt8KL6p9Vk2lD1dyYGZVsTYsTHnTT52Sc0PBZA1uEQjAMQWi_pjFxxIF4WpaFQ6qv/exec';
+    // =========================================================================
+
+    async function showRanking(level) {
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelector(`.tab-buttons button:nth-child(${level})`).classList.add('active');
+        const tableBody = document.querySelector("#ranking-table tbody");
+        tableBody.innerHTML = '<tr><td colspan="3" class="loader">ランキングを読み込み中...</td></tr>';
+        
+        try {
+            const response = await fetch(`${GAS_WEB_APP_URL}?level=${level}`);
+            const ranking = await response.json();
+            tableBody.innerHTML = '';
+            
+            if (ranking.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="3">まだ記録がありません。</td></tr>';
+            } else {
+                ranking.forEach((record, index) => {
+                    const row = tableBody.insertRow();
+                    row.insertCell().textContent = `${index + 1}位`;
+                    row.insertCell().textContent = record.nickname;
+                    row.insertCell().textContent = record.score;
+                });
+            }
+        } catch (error) {
+            tableBody.innerHTML = '<tr><td colspan="3">ランキングの読み込みに失敗しました。</td></tr>';
+        }
+    }
+    window.onload = () => showRanking(1);
+</script>
+</body>
+</html>
