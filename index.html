@@ -9,7 +9,7 @@
         body { font-family: 'Hiragino Kaku Gothic ProN', 'メイリオ', sans-serif; line-height: 1.8; background-color: #f0f4f8; color: #333; }
         .container { max-width: 800px; margin: 20px auto; padding: 25px; background-color: #fff; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
         h1, h2 { text-align: center; color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px; }
-        .btn { display: inline-block; padding: 12px 25px; font-size: 18px; font-weight: bold; color: #fff; background-color: #3498db; border: none; border-radius: 5px; cursor: pointer; transition: all 0.3s; margin: 5px; }
+        .btn { display: inline-block; padding: 12px 25px; font-size: 18px; font-weight: bold; color: #fff; background-color: #3498db; border: none; border-radius: 5px; cursor: pointer; transition: all 0.3s; margin: 5px; text-decoration: none; }
         .btn:hover { background-color: #2980b9; transform: translateY(-2px); }
         .btn-secondary { background-color: #2ecc71; }
         .btn-secondary:hover { background-color: #27ae60; }
@@ -31,7 +31,7 @@
 <body>
 <div class="container">
     <h1>2次関数Maxmin タイムアタックチャレンジ ⏱️</h1>
-    <h2>レベル１は「定義域なし」、レベル２は「定義域あり」<h2>
+    <p>レベル１は「定義域なし」、レベル２は「定義域あり」</p>
     <div id="start-screen">
         <h2>挑戦するレベルを選択</h2>
         <div class="input-group" style="margin-bottom: 20px;"><label for="start-nickname">ニックネーム:</label><input type="text" id="start-nickname" value="挑戦者" style="width: 200px;"></div>
@@ -45,8 +45,11 @@
     <div id="result-screen" style="display: none;">
         <h2>ゲーム終了！</h2><p style="font-size: 1.5em; font-weight: bold;">あなたのスコア: <span id="final-score">0</span> 点</p>
         <div class="input-group"><label for="nickname">ニックネーム:</label><input type="text" id="nickname" readonly style="width: 200px; background-color: #eee;"></div>
-        <button class="btn btn-secondary" onclick="saveScore()">オンラインランキングに登録</button><button class="btn" onclick="restartGame()">もう一度挑戦</button>
-    </div>
+        
+        <button class="btn btn-secondary" onclick="saveScore()">オンラインランキングに登録</button>
+        <button class="btn" onclick="restartGame()" style="background-color: #3498db;">最初に戻る</button>
+        <a href="ranking.html" target="_blank" class="btn" style="background-color: #95a5a6;">ランキングを見る</a>
+        </div>
 </div>
 <script>
     const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwgt8KL6p9Vk2lD1dyYGZVsTYsTHnTT52Sc0PBZA1uEQjAMQWi_pjFxxIF4WpaFQ6qv/exec';
