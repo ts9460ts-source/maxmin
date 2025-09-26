@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>2次関数の最大最小 タイムアタックチャレンジ</title>
+    <title>2次関数 タイムアタックチャレンジ</title>
     <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <style>
@@ -15,65 +15,48 @@
         .btn-secondary:hover { background-color: #27ae60; }
         #start-screen, #result-screen { text-align: center; padding: 20px 0; }
         #game-screen { display: none; }
-        #high-score-display { background-color: #ecf0f1; padding: 15px; border-radius: 8px; margin: 20px 0; text-align: center; font-size: 1.1em; }
+        .game-header { display: flex; justify-content: space-between; align-items: center; padding: 10px; background-color: #34495e; color: white; border-radius: 8px; margin-bottom: 20px; }
+        .game-status { font-size: 1.2em; font-weight: bold; }
+        .timer { font-size: 1.5em; font-family: 'Courier New', Courier, monospace; }
         #problem-display { padding: 25px; margin-top: 20px; border: 1px solid #ccc; border-radius: 8px; font-size: 1.25em; }
-        .game-status { font-size: 1.2em; font-weight: bold; text-align: center; margin-bottom: 20px; color: #34495e; }
         .input-group { margin-bottom: 15px; display: flex; align-items: center; flex-wrap: wrap; justify-content: center; }
         .input-group label { width: auto; font-weight: bold; margin-right: 10px; }
         .input-group input[type="text"] { width: 100px; padding: 8px; font-size: 1em; border: 1px solid #ccc; border-radius: 4px; margin-right: 10px; }
         #result-display { margin-top: 20px; padding: 15px; border-radius: 5px; font-weight: bold; text-align: center; }
         .correct { background-color: #d4edda; color: #155724; }
         .incorrect { background-color: #f8d7da; color: #721c24; }
+        #explanation-area { display: none; margin-top: 15px; padding: 20px; background-color: #fff3cd; border-left: 5px solid #ffeeba; border-radius: 5px; }
     </style>
 </head>
 <body>
 <div class="container">
-    <h1>2次関数の最大最小 タイムアタックチャレンジ ⏱️</h1>
-    <p>レベル１は「定義域なし」、レベル２は「定義域あり」</p>
+    <h1>2次関数Maxmin タイムアタックチャレンジ ⏱️</h1>
+    <h2>レベル１は「定義域なし」、レベル２は「定義域あり」<h2>
     <div id="start-screen">
         <h2>挑戦するレベルを選択</h2>
-        <div class="input-group" style="margin-bottom: 20px;">
-            <label for="start-nickname">ニックネーム:</label>
-            <input type="text" id="start-nickname" value="挑戦者" style="width: 200px;">
-        </div>
-        <div id="high-score-display">
-            <p>ハイスコア (レベル1): <span id="high-score-1">0</span> 点</p>
-            <p>ハイスコア (レベル2): <span id="high-score-2">0</span> 点</p>
-        </div>
-        <button class="btn" onclick="startGame(1)">レベル1 に挑戦</button>
-        <button class="btn btn-secondary" onclick="startGame(2)">レベル2 に挑戦</button>
-        <a href="ranking.html" target="_blank" class="btn" style="text-decoration: none; background-color: #95a5a6;">オンラインランキングを見る</a>
+        <div class="input-group" style="margin-bottom: 20px;"><label for="start-nickname">ニックネーム:</label><input type="text" id="start-nickname" value="挑戦者" style="width: 200px;"></div>
+        <div id="high-score-display" style="background-color: #ecf0f1; padding: 15px; border-radius: 8px; margin: 20px 0; text-align: center; font-size: 1.1em;"><p>ハイスコア (レベル1): <span id="high-score-1">0</span> 点</p><p>ハイスコア (レベル2): <span id="high-score-2">0</span> 点</p></div>
+        <button class="btn" onclick="startGame(1)">レベル1 に挑戦</button><button class="btn btn-secondary" onclick="startGame(2)">レベル2 に挑戦</button><a href="ranking.html" target="_blank" class="btn" style="text-decoration: none; background-color: #95a5a6;">オンラインランキングを見る</a>
     </div>
     <div id="game-screen">
-        <div class="game-status"><span id="stage-info"></span> | 問 <span id="question-number"></span> / 3</div>
-        <div id="problem-display"></div>
-        <div id="answer-form"></div>
-        <div id="result-display"></div>
+        <div class="game-header"><div class="game-status"><span id="stage-info"></span> | 問 <span id="question-number"></span> / 3</div><div class="timer" id="timer-display">0.00</div></div>
+        <div id="problem-display"></div><div id="answer-form"></div><div id="result-display"></div><div id="explanation-area"></div>
     </div>
     <div id="result-screen" style="display: none;">
-        <h2>ゲーム終了！</h2>
-        <p style="font-size: 1.5em; font-weight: bold;">あなたのスコア: <span id="final-score">0</span> 点</p>
-        <div class="input-group">
-            <label for="nickname">ニックネーム:</label><input type="text" id="nickname" readonly style="width: 200px; background-color: #eee;">
-        </div>
-        <button class="btn btn-secondary" onclick="saveScore()">オンラインランキングに登録</button>
-        <button class="btn" onclick="restartGame()">もう一度挑戦</button>
+        <h2>ゲーム終了！</h2><p style="font-size: 1.5em; font-weight: bold;">あなたのスコア: <span id="final-score">0</span> 点</p>
+        <div class="input-group"><label for="nickname">ニックネーム:</label><input type="text" id="nickname" readonly style="width: 200px; background-color: #eee;"></div>
+        <button class="btn btn-secondary" onclick="saveScore()">オンラインランキングに登録</button><button class="btn" onclick="restartGame()">もう一度挑戦</button>
     </div>
 </div>
 <script>
-    // =========================================================================
-    // ★★★【重要】ここにGASのウェブアプリURLを貼り付けてください ★★★
     const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwgt8KL6p9Vk2lD1dyYGZVsTYsTHnTT52Sc0PBZA1uEQjAMQWi_pjFxxIF4WpaFQ6qv/exec';
-    // =========================================================================
-    
     let gameState = {};
-    
-    // 省略 (ヘルパー関数など前回のコードと同じ)
+    let timerInterval;
+
     const getRandomInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
     const getNonZeroRandomInt = (min, max) => { let n; do { n = getRandomInt(min, max); } while (n === 0); return n; };
     const formatCoefficient = (n, v = '', isFirst = false) => { if (n === 0) return ''; const sign = n > 0 ? (isFirst ? '' : ' + ') : ' - '; const absN = Math.abs(n); const num = (absN === 1 && v !== '') ? '' : absN; return `${sign}${num}${v}`; };
     const sanitizeInput = (input) => { input.value = input.value.replace(/[^0-9-]/g, ''); };
-
 
     document.addEventListener('DOMContentLoaded', () => {
         updateHighScoreDisplay();
@@ -88,18 +71,23 @@
     function startGame(level) {
         const nickname = document.getElementById('start-nickname').value || '挑戦者';
         localStorage.setItem('lastNickname', nickname);
-        
-        gameState = { 
-            level: level, 
-            nickname: nickname,
-            questionIndex: 0, 
-            totalScore: 0, 
-            startTime: null 
-        };
+        gameState = { level: level, nickname: nickname, questionIndex: 0, totalScore: 0, elapsedTime: 0, isPaused: false };
         document.getElementById('start-screen').style.display = 'none';
         document.getElementById('result-screen').style.display = 'none';
         document.getElementById('game-screen').style.display = 'block';
+        startTimer();
         nextQuestion();
+    }
+
+    function startTimer() {
+        if (timerInterval) clearInterval(timerInterval);
+        const startTime = Date.now() - gameState.elapsedTime;
+        timerInterval = setInterval(() => {
+            if (!gameState.isPaused) {
+                gameState.elapsedTime = Date.now() - startTime;
+                document.getElementById('timer-display').textContent = (gameState.elapsedTime / 1000).toFixed(2);
+            }
+        }, 10);
     }
 
     function restartGame() {
@@ -116,14 +104,17 @@
         document.getElementById('stage-info').textContent = `レベル ${gameState.level}`;
         document.getElementById('question-number').textContent = gameState.questionIndex + 1;
         document.getElementById('result-display').style.display = 'none';
+        document.getElementById('explanation-area').style.display = 'none';
+        
         if (gameState.level === 1) generateLevel1(); else generateLevel2();
         MathJax.typesetPromise();
-        gameState.startTime = new Date();
     }
 
     function checkAnswer() {
-        const timeTaken = (new Date() - gameState.startTime) / 1000;
+        const timeBeforeCheck = gameState.elapsedTime;
+        gameState.isPaused = true; // 解答チェック中はタイムを止める
         let isCorrect = false;
+
         if (gameState.level === 1) {
             const p = gameState.currentProblem;
             const maxVal = document.getElementById('max-val').value, maxX = document.getElementById('max-x').value;
@@ -136,35 +127,86 @@
             const minVal = document.getElementById('min-val').value, minX = document.getElementById('min-x').value;
             if (maxVal == p.maxValue && maxX == p.maxX && minVal == p.minValue && minX == p.minX) isCorrect = true;
         }
+
         const resultDisplay = document.getElementById('result-display');
         if (isCorrect) {
-            const score = calculateScore(timeTaken, gameState.level);
-            gameState.totalScore += score;
+            const score = calculateScore(gameState.elapsedTime, gameState.level);
+            gameState.totalScore = score; // タイムアタックなのでスコアは最終タイムで決める
             resultDisplay.className = 'correct';
-            resultDisplay.textContent = `正解！ ${score}点獲得！`;
+            resultDisplay.textContent = '正解！';
+            resultDisplay.style.display = 'block';
+            gameState.questionIndex++;
+            setTimeout(() => {
+                gameState.isPaused = false;
+                nextQuestion();
+            }, 1000);
         } else {
             resultDisplay.className = 'incorrect';
-            resultDisplay.textContent = '不正解...！ 0点';
+            resultDisplay.textContent = '不正解...！タイムは停止しています。';
+            resultDisplay.style.display = 'block';
+            showExplanation();
         }
-        resultDisplay.style.display = 'block';
+    }
+    
+    function resumeGame() {
         gameState.questionIndex++;
-        setTimeout(nextQuestion, 1500);
+        gameState.isPaused = false;
+        nextQuestion();
     }
 
-    function calculateScore(time, level) {
-        const BASE_SCORE = 1000;
+    function showExplanation() {
+        const p = gameState.currentProblem;
+        const explanationArea = document.getElementById('explanation-area');
+        let html = `<h4>💡 解説</h4>`;
+        if(gameState.level === 1){
+            const standardForm = `y = ${formatCoefficient(p.a, `(x ${p.p > 0 ? '-' : '+'} ${Math.abs(p.p)})^2`, true)} ${formatCoefficient(p.q)}`;
+            html += `<p>まず、平方完成して頂点を求めます。<br>\\[ ${standardForm} \\]</p>`;
+            html += `<p>頂点は (\\(${p.p}, ${p.q}\\)) です。</p>`;
+            if(p.a > 0){
+                html += `<p>グラフは下に凸 (∪の形) なので、頂点で<strong>最小値</strong> \\(${p.q}\\) をとります。(x=\\(${p.p}\\))<br>最大値はありません。</p>`;
+            } else {
+                html += `<p>グラフは上に凸 (∩の形) なので、頂点で<strong>最大値</strong> \\(${p.q}\\) をとります。(x=\\(${p.p}\\))<br>最小値はありません。</p>`;
+            }
+        } else { // Level 2
+            const axisX = p.p;
+            html += `<p>平方完成すると、軸は直線 \\(x = ${axisX}\\) であることが分かります。</p>`;
+            html += `<p>次に、軸と定義域 \\(${p.d1} \\le x \\le ${p.d2}\\) の位置関係を考えます。</p><ul>`;
+            if (axisX < p.d1) { // 軸が定義域の左
+                 html += `<li>軸 (x=${axisX}) は定義域の左側にあります。</li><li>よって、定義域の左端 \\(x=${p.d1}\\) で最小値、右端 \\(x=${p.d2}\\) で最大値をとります。</li>`;
+            } else if (axisX > p.d2) { // 軸が定義域の右
+                 html += `<li>軸 (x=${axisX}) は定義域の右側にあります。</li><li>よって、定義域の左端 \\(x=${p.d1}\\) で最大値、右端 \\(x=${p.d2}\\) で最小値をとります。</li>`;
+            } else { // 軸が定義域の中
+                html += `<li>軸 (x=${axisX}) は定義域の中にあります。</li>`;
+                if(p.a > 0){
+                     html += `<li>下に凸のグラフなので、頂点 (x=${axisX}) で最小値をとります。</li><li>最大値は、軸から遠い方の定義域の端でとります。</li>`;
+                } else {
+                     html += `<li>上に凸のグラフなので、頂点 (x=${axisX}) で最大値をとります。</li><li>最小値は、軸から遠い方の定義域の端でとります。</li>`;
+                }
+            }
+            html += `</ul><p><b>[正解]</b> 最大値: ${p.maxValue} (x=${p.maxX}), 最小値: ${p.minValue} (x=${p.minX})</p>`;
+        }
+        html += `<button class="btn" onclick="resumeGame()">次の問題へ</button>`;
+        explanationArea.innerHTML = html;
+        explanationArea.style.display = 'block';
+        MathJax.typesetPromise();
+    }
+
+    function calculateScore(timeMillis, level) {
+        const timeSeconds = timeMillis / 1000;
+        const BASE_SCORE = 10000;
         const levelMultiplier = (level === 1) ? 1.0 : 1.5;
-        const baseScore = BASE_SCORE * levelMultiplier;
-        const timePenalty = time * 20; // 1秒あたり20点減点
-        return Math.round(Math.max(10, baseScore - timePenalty));
+        const timePenalty = timeSeconds * 10;
+        const rawScore = (BASE_SCORE - timePenalty) * levelMultiplier;
+        return Math.round(Math.max(100, rawScore));
     }
 
     function endGame() {
+        clearInterval(timerInterval);
+        gameState.totalScore = calculateScore(gameState.elapsedTime, gameState.level);
         document.getElementById('game-screen').style.display = 'none';
         document.getElementById('result-screen').style.display = 'block';
         document.getElementById('final-score').textContent = gameState.totalScore;
         document.getElementById('nickname').value = gameState.nickname;
-
         const highScoreKey = `highScore_level${gameState.level}`;
         const currentHighScore = parseInt(localStorage.getItem(highScoreKey) || '0');
         if (gameState.totalScore > currentHighScore) {
@@ -176,21 +218,9 @@
         const saveButton = document.querySelector('#result-screen .btn-secondary');
         saveButton.disabled = true;
         saveButton.textContent = '登録中...';
-        
-        const payload = { 
-            nickname: gameState.nickname, 
-            score: gameState.totalScore, 
-            level: gameState.level 
-        };
-
+        const payload = { nickname: gameState.nickname, score: gameState.totalScore, level: gameState.level };
         try {
-            await fetch(GAS_WEB_APP_URL, {
-                method: 'POST',
-                mode: 'no-cors',
-                cache: 'no-cache',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
+            await fetch(GAS_WEB_APP_URL, { method: 'POST', mode: 'no-cors', cache: 'no-cache', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
             saveButton.textContent = '登録完了！';
         } catch (error) {
             alert('登録に失敗しました。');
@@ -199,12 +229,9 @@
         }
     }
 
-    // 省略 (問題生成ロジックとUI操作関数は前回のコードと同じ)
     function handleCheckbox(type) { const isChecked = document.getElementById(`${type}-none`).checked; document.getElementById(`${type}-val`).disabled = isChecked; document.getElementById(`${type}-x`).disabled = isChecked; }
     function generateLevel1() { const a = (Math.random() < 0.5) ? 1 : -1, p = getNonZeroRandomInt(-5, 5), q = getNonZeroRandomInt(-8, 8); gameState.currentProblem = { a, p, q }; const b = -2 * a * p, c = a * p * p + q; document.getElementById('problem-display').innerHTML = `<p>\\[ y = ${formatCoefficient(a, 'x^2', true)} ${formatCoefficient(b, 'x')} ${formatCoefficient(c)} \\]</p>`; document.getElementById('answer-form').innerHTML = `<p>最大値・最小値を求め、値がない場合は「なし」にチェック</p><div class="input-group" style="justify-content: left;"><label for="max-val">最大値:</label><input type="text" id="max-val" oninput="sanitizeInput(this)"><span>(x=</span><input type="text" id="max-x" oninput="sanitizeInput(this)"><span>)</span><label style="margin-left:10px;"><input type="checkbox" id="max-none" onchange="handleCheckbox('max')">なし</label></div><div class="input-group" style="justify-content: left;"><label for="min-val">最小値:</label><input type="text" id="min-val" oninput="sanitizeInput(this)"><span>(x=</span><input type="text" id="min-x" oninput="sanitizeInput(this)"><span>)</span><label style="margin-left:10px;"><input type="checkbox" id="min-none" onchange="handleCheckbox('min')">なし</label></div><button class="btn" onclick="checkAnswer()">解答</button>`; }
-    function generateLevel2() { const a = (Math.random() < 0.5) ? 1 : -1, p = getRandomInt(-4, 4), q = getRandomInt(-8, 8); const d1 = p - getRandomInt(1, 4), d2 = p + getRandomInt(1, 4); const b = -2 * a * p, c = a * p * p + q; const y1 = a * (d1-p)**2 + q, y2 = a * (d2-p)**2 + q; let maxValue, maxX, minValue, minX; if (a > 0) { minValue = q; minX = p; maxValue = Math.max(y1, y2); maxX = y1 >= y2 ? d1 : d2; } else { maxValue = q; maxX = p; minValue = Math.min(y1, y2); minX = y1 <= y2 ? d1 : d2; } gameState.currentProblem = { maxValue, maxX, minValue, minX }; document.getElementById('problem-display').innerHTML = `<p>\\[ y = ${formatCoefficient(a, 'x^2', true)} ${formatCoefficient(b, 'x')} ${formatCoefficient(c)} \\quad (${d1} \\le x \\le ${d2}) \\]</p>`; document.getElementById('answer-form').innerHTML = `<p>最大値と最小値、そのときのxの値を答えよ。</p><div class="input-group" style="justify-content: left;"><label for="max-val">最大値:</label><input type="text" id="max-val" oninput="sanitizeInput(this)"><span>(x=</span><input type="text" id="max-x" oninput="sanitizeInput(this)"><span>)</span></div><div class="input-group" style="justify-content: left;"><label for="min-val">最小値:</label><input type="text" id="min-val" oninput="sanitizeInput(this)"><span>(x=</span><input type="text" id="min-x" oninput="sanitizeInput(this)"><span>)</span></div><button class="btn" onclick="checkAnswer()">解答</button>`; }
+    function generateLevel2() { const a = (Math.random() < 0.5) ? 1 : -1, p = getRandomInt(-4, 4), q = getRandomInt(-8, 8); const d1 = p - getRandomInt(1, 4), d2 = p + getRandomInt(1, 4); gameState.currentProblem = { a, p, q, d1, d2 }; const b = -2 * a * p, c = a * p * p + q; const y1 = a * (d1-p)**2 + q, y2 = a * (d2-p)**2 + q; let maxValue, maxX, minValue, minX; if (a > 0) { minValue = q; minX = p; maxValue = Math.max(y1, y2); maxX = y1 >= y2 ? d1 : d2; } else { maxValue = q; maxX = p; minValue = Math.min(y1, y2); minX = y1 <= y2 ? d1 : d2; } gameState.currentProblem.maxValue = maxValue; gameState.currentProblem.maxX = maxX; gameState.currentProblem.minValue = minValue; gameState.currentProblem.minX = minX; document.getElementById('problem-display').innerHTML = `<p>\\[ y = ${formatCoefficient(a, 'x^2', true)} ${formatCoefficient(b, 'x')} ${formatCoefficient(c)} \\quad (${d1} \\le x \\le ${d2}) \\]</p>`; document.getElementById('answer-form').innerHTML = `<p>最大値と最小値、そのときのxの値を答えよ。</p><div class="input-group" style="justify-content: left;"><label for="max-val">最大値:</label><input type="text" id="max-val" oninput="sanitizeInput(this)"><span>(x=</span><input type="text" id="max-x" oninput="sanitizeInput(this)"><span>)</span></div><div class="input-group" style="justify-content: left;"><label for="min-val">最小値:</label><input type="text" id="min-val" oninput="sanitizeInput(this)"><span>(x=</span><input type="text" id="min-x" oninput="sanitizeInput(this)"><span>)</span></div><button class="btn" onclick="checkAnswer()">解答</button>`; }
 </script>
 </body>
 </html>
-
-
