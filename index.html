@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>2次関数Maxmin タイムアタックチャレンジ</title>
+    <title>2次関数 タイムアタックチャレンジ</title>
     <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -32,8 +32,7 @@
 </head>
 <body>
 <div class="container">
-    <h1>2次関数Maxmin タイムアタックチャレンジ ⏱️</h1>
-    <center><p>レベル１は定義域なし、レベル２は定義域あり</p></center>
+    <h1>2次関数 タイムアタックチャレンジ ⏱️</h1>
     <div id="start-screen">
         <h2>挑戦するレベルを選択</h2>
         <div class="input-group" style="margin-bottom: 20px;"><label for="start-nickname">ニックネーム:</label><input type="text" id="start-nickname" value="挑戦者" style="width: 200px;"></div>
@@ -57,7 +56,7 @@
     </div>
 </div>
 <script>
-    const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwgt8KL6p9Vk2lD1dyYGZVsTYsTHnTT52Sc0PBZA1uEQjAMQWi_pjFxxIF4WpaFQ6qv/exec';
+    const GAS_WEB_APP_URL = 'ここにGASのウェブアプリURLを貼り付け';
     let gameState = {};
     let timerInterval;
     let explanationChart;
@@ -169,11 +168,11 @@
         let html = '';
 
         if(gameState.level === 1){
-            canvas.style.display = 'none'; // レベル1ではグラフを非表示
+            canvas.style.display = 'none';
             html += `<p>この式から、頂点は (\\(${p.p}, ${p.q}\\)) です。</p>`;
             html += p.a > 0 ? `<p>グラフは下に凸 (∪の形) なので、頂点で<strong>最小値</strong> \\(${p.q}\\) (x=\\(${p.p}\\))をとります。<br>最大値はありません。</p>` : `<p>グラフは上に凸 (∩の形) なので、頂点で<strong>最大値</strong> \\(${p.q}\\) (x=\\(${p.p}\\))をとります。<br>最小値はありません。</p>`;
         } else {
-            canvas.style.display = 'block'; // レベル2ではグラフを表示
+            canvas.style.display = 'block';
             const axisX = p.p;
             html += `<p>平方完成すると、軸は直線 \\(x = ${axisX}\\) であることが分かります。</p><p>次に、下のグラフのように軸と定義域 \\(${p.d1} \\le x \\le ${p.d2}\\) の位置関係を考えます。</p><ul>`;
             if (axisX < p.d1) {
@@ -195,66 +194,31 @@
         MathJax.typesetPromise();
     }
     
-    // ▼▼▼ グラフ描画関数 ▼▼▼
     function drawExplanationGraph(p) {
         if (explanationChart) { explanationChart.destroy(); }
         const ctx = document.getElementById('explanation-chart').getContext('2d');
-        
         const func = x => p.a * (x - p.p)**2 + p.q;
-        
-        // 描画範囲を決定
         const xMin = Math.min(p.d1, p.p) - 2;
         const xMax = Math.max(p.d2, p.p) + 2;
         const yValues = [func(p.d1), func(p.d2), p.q];
         const yMin = Math.min(...yValues) - 5;
         const yMax = Math.max(...yValues) + 5;
-
-        // データセットを作成
         const parabolaData = [];
-        for (let x = xMin; x <= xMax; x += 0.2) {
-            parabolaData.push({x: x, y: func(x)});
-        }
-        
+        for (let x = xMin; x <= xMax; x += 0.2) { parabolaData.push({x: x, y: func(x)}); }
         explanationChart = new Chart(ctx, {
             type: 'scatter',
             data: {
                 datasets: [{
-                    label: 'y = f(x)',
-                    data: parabolaData,
-                    borderColor: 'rgb(54, 162, 235)',
-                    backgroundColor: 'rgba(54, 162, 235, 0.5)',
-                    showLine: true,
-                    pointRadius: 0,
-                    borderWidth: 3
+                    label: 'y = f(x)', data: parabolaData, borderColor: 'rgb(54, 162, 235)', backgroundColor: 'rgba(54, 162, 235, 0.5)', showLine: true, pointRadius: 0, borderWidth: 3
                 }, {
-                    label: '軸',
-                    data: [{x: p.p, y: yMin}, {x: p.p, y: yMax}],
-                    borderColor: 'rgb(255, 99, 132)',
-                    showLine: true,
-                    borderDash: [5, 5],
-                    pointRadius: 0,
-                    borderWidth: 2
+                    label: '軸', data: [{x: p.p, y: yMin}, {x: p.p, y: yMax}], borderColor: 'rgb(255, 99, 132)', showLine: true, borderDash: [5, 5], pointRadius: 0, borderWidth: 2
                 }, {
-                    label: '定義域',
-                    data: [{x: p.d1, y: yMin}, {x: p.d1, y: yMax}],
-                    borderColor: 'rgb(75, 192, 192)',
-                    showLine: true,
-                    pointRadius: 0,
-                    borderWidth: 2
+                    label: '定義域', data: [{x: p.d1, y: yMin}, {x: p.d1, y: yMax}], borderColor: 'rgb(75, 192, 192)', showLine: true, pointRadius: 0, borderWidth: 2
                 }, {
-                    label: '定義域',
-                    data: [{x: p.d2, y: yMin}, {x: p.d2, y: yMax}],
-                    borderColor: 'rgb(75, 192, 192)',
-                    showLine: true,
-                    pointRadius: 0,
-                    borderWidth: 2
+                    label: '定義域', data: [{x: p.d2, y: yMin}, {x: p.d2, y: yMax}], borderColor: 'rgb(75, 192, 192)', showLine: true, pointRadius: 0, borderWidth: 2
                 }]
             },
-            options: {
-                scales: { x: { min: xMin, max: xMax }, y: { min: yMin, max: yMax } },
-                plugins: { legend: { display: false } },
-                animation: false
-            }
+            options: { scales: { x: { min: xMin, max: xMax }, y: { min: yMin, max: yMax } }, plugins: { legend: { display: false } }, animation: false }
         });
     }
 
