@@ -2,9 +2,10 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>2次関数 タイムアタックチャレンジ</title>
+    <title>2次関数Maxmin タイムアタックチャレンジ</title>
     <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { font-family: 'Hiragino Kaku Gothic ProN', 'メイリオ', sans-serif; line-height: 1.8; background-color: #f0f4f8; color: #333; }
         .container { max-width: 800px; margin: 20px auto; padding: 25px; background-color: #fff; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
@@ -26,12 +27,13 @@
         .correct { background-color: #d4edda; color: #155724; }
         .incorrect { background-color: #f8d7da; color: #721c24; }
         #explanation-area { display: none; margin-top: 15px; padding: 20px; background-color: #fff3cd; border-left: 5px solid #ffeeba; border-radius: 5px; }
+        #explanation-chart { max-width: 400px; margin: 15px auto; }
     </style>
 </head>
 <body>
 <div class="container">
     <h1>2次関数Maxmin タイムアタックチャレンジ ⏱️</h1>
-    <p>レベル１は「定義域なし」、レベル２は「定義域あり」</p>
+    <center><p>レベル１は定義域なし、レベル２は定義域あり</p></center>
     <div id="start-screen">
         <h2>挑戦するレベルを選択</h2>
         <div class="input-group" style="margin-bottom: 20px;"><label for="start-nickname">ニックネーム:</label><input type="text" id="start-nickname" value="挑戦者" style="width: 200px;"></div>
@@ -40,21 +42,25 @@
     </div>
     <div id="game-screen">
         <div class="game-header"><div class="game-status"><span id="stage-info"></span> | 問 <span id="question-number"></span> / 3</div><div class="timer" id="timer-display">0.00</div></div>
-        <div id="problem-display"></div><div id="answer-form"></div><div id="result-display"></div><div id="explanation-area"></div>
+        <div id="problem-display"></div><div id="answer-form"></div><div id="result-display"></div>
+        <div id="explanation-area">
+            <h4>💡 解説</h4>
+            <canvas id="explanation-chart"></canvas>
+            <div id="explanation-text"></div>
+            <button class="btn" onclick="resumeGame()">次の問題へ</button>
+        </div>
     </div>
     <div id="result-screen" style="display: none;">
-        <h2>ゲーム終了！</h2><p style="font-size: 1.5em; font-weight: bold;">あなたのスコア: <span id="final-score">0</span> 点</p>
+        <h2>ゲーム終了！</h2><p style="font-size: 1.5em; font-weight: bold;">最終スコア: <span id="final-score">0</span> 点</p>
         <div class="input-group"><label for="nickname">ニックネーム:</label><input type="text" id="nickname" readonly style="width: 200px; background-color: #eee;"></div>
-        
-        <button class="btn btn-secondary" onclick="saveScore()">オンラインランキングに登録</button>
-        <button class="btn" onclick="restartGame()" style="background-color: #3498db;">最初に戻る</button>
-        <a href="ranking.html" target="_blank" class="btn" style="background-color: #95a5a6;">ランキングを見る</a>
-        </div>
+        <button class="btn btn-secondary" onclick="saveScore()">オンラインランキングに登録</button><button class="btn" onclick="restartGame()" style="background-color: #3498db;">最初に戻る</button><a href="ranking.html" target="_blank" class="btn" style="background-color: #95a5a6;">ランキングを見る</a>
+    </div>
 </div>
 <script>
     const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwgt8KL6p9Vk2lD1dyYGZVsTYsTHnTT52Sc0PBZA1uEQjAMQWi_pjFxxIF4WpaFQ6qv/exec';
     let gameState = {};
     let timerInterval;
+    let explanationChart;
 
     const getRandomInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
     const getNonZeroRandomInt = (min, max) => { let n; do { n = getRandomInt(min, max); } while (n === 0); return n; };
@@ -74,7 +80,7 @@
     function startGame(level) {
         const nickname = document.getElementById('start-nickname').value || '挑戦者';
         localStorage.setItem('lastNickname', nickname);
-        gameState = { level: level, nickname: nickname, questionIndex: 0, totalScore: 0, elapsedTime: 0, isPaused: false };
+        gameState = { level: level, nickname: nickname, questionIndex: 0, questionScores: [0, 0, 0], elapsedTime: 0, isPaused: false };
         document.getElementById('start-screen').style.display = 'none';
         document.getElementById('result-screen').style.display = 'none';
         document.getElementById('game-screen').style.display = 'block';
@@ -108,45 +114,44 @@
         document.getElementById('question-number').textContent = gameState.questionIndex + 1;
         document.getElementById('result-display').style.display = 'none';
         document.getElementById('explanation-area').style.display = 'none';
-        
-        if (gameState.level === 1) generateLevel1(); else generateLevel2();
+        generateQuestion();
         MathJax.typesetPromise();
     }
 
     function checkAnswer() {
-        const timeBeforeCheck = gameState.elapsedTime;
-        gameState.isPaused = true; // 解答チェック中はタイムを止める
-        let isCorrect = false;
-
-        if (gameState.level === 1) {
-            const p = gameState.currentProblem;
-            const maxVal = document.getElementById('max-val').value, maxX = document.getElementById('max-x').value;
-            const minVal = document.getElementById('min-val').value, minX = document.getElementById('min-x').value;
-            const maxNone = document.getElementById('max-none').checked, minNone = document.getElementById('min-none').checked;
-            if (p.a > 0 ? (minVal == p.q && minX == p.p && maxNone) : (maxVal == p.q && maxX == p.p && minNone)) isCorrect = true;
+        gameState.isPaused = true;
+        let isMaxCorrect = false, isMinCorrect = false;
+        const p = gameState.currentProblem;
+        const maxVal = document.getElementById('max-val').value, maxX = document.getElementById('max-x').value, maxNone = document.getElementById('max-none')?.checked;
+        const minVal = document.getElementById('min-val').value, minX = document.getElementById('min-x').value, minNone = document.getElementById('min-none')?.checked;
+        if(gameState.level === 1){
+            if (p.a > 0) { isMinCorrect = (minVal == p.q && minX == p.p); isMaxCorrect = maxNone; }
+            else { isMaxCorrect = (maxVal == p.q && maxX == p.p); isMinCorrect = minNone; }
         } else {
-            const p = gameState.currentProblem;
-            const maxVal = document.getElementById('max-val').value, maxX = document.getElementById('max-x').value;
-            const minVal = document.getElementById('min-val').value, minX = document.getElementById('min-x').value;
-            if (maxVal == p.maxValue && maxX == p.maxX && minVal == p.minValue && minX == p.minX) isCorrect = true;
+            isMaxCorrect = (maxVal == p.maxValue && maxX == p.maxX);
+            isMinCorrect = (minVal == p.minValue && minX == p.minX);
         }
 
-        const resultDisplay = document.getElementById('result-display');
-        if (isCorrect) {
-            const score = calculateScore(gameState.elapsedTime, gameState.level);
-            gameState.totalScore = score; // タイムアタックなのでスコアは最終タイムで決める
-            resultDisplay.className = 'correct';
-            resultDisplay.textContent = '正解！';
-            resultDisplay.style.display = 'block';
-            gameState.questionIndex++;
-            setTimeout(() => {
-                gameState.isPaused = false;
-                nextQuestion();
-            }, 1000);
+        const potentialScore = calculatePotentialScore(gameState.elapsedTime, gameState.level, gameState.questionIndex);
+        let currentScore = 0;
+        let resultText = '';
+        if(isMaxCorrect && isMinCorrect){
+            currentScore = potentialScore; resultText = `正解！ ${currentScore}点獲得！`;
+        } else if (isMaxCorrect || isMinCorrect) {
+            currentScore = Math.round(potentialScore / 2); resultText = `部分正解！ ${currentScore}点獲得！`;
         } else {
-            resultDisplay.className = 'incorrect';
-            resultDisplay.textContent = '不正解...！タイムは停止しています。';
-            resultDisplay.style.display = 'block';
+            currentScore = 0; resultText = '不正解...！ 0点';
+        }
+        gameState.questionScores[gameState.questionIndex] = currentScore;
+        const resultDisplay = document.getElementById('result-display');
+        resultDisplay.className = (isMaxCorrect && isMinCorrect) ? 'correct' : 'incorrect';
+        resultDisplay.textContent = resultText;
+        resultDisplay.style.display = 'block';
+        if (isMaxCorrect && isMinCorrect) {
+            gameState.questionIndex++;
+            setTimeout(() => { gameState.isPaused = false; nextQuestion(); }, 1500);
+        } else {
+            resultDisplay.textContent += ' タイムは停止しています。';
             showExplanation();
         }
     }
@@ -159,69 +164,127 @@
 
     function showExplanation() {
         const p = gameState.currentProblem;
-        const explanationArea = document.getElementById('explanation-area');
-        let html = `<h4>💡 解説</h4>`;
+        const explanationTextArea = document.getElementById('explanation-text');
+        const canvas = document.getElementById('explanation-chart');
+        let html = '';
+
         if(gameState.level === 1){
-            const standardForm = `y = ${formatCoefficient(p.a, `(x ${p.p > 0 ? '-' : '+'} ${Math.abs(p.p)})^2`, true)} ${formatCoefficient(p.q)}`;
-            html += `<p>まず、平方完成して頂点を求めます。<br>\\[ ${standardForm} \\]</p>`;
-            html += `<p>頂点は (\\(${p.p}, ${p.q}\\)) です。</p>`;
-            if(p.a > 0){
-                html += `<p>グラフは下に凸 (∪の形) なので、頂点で<strong>最小値</strong> \\(${p.q}\\) をとります。(x=\\(${p.p}\\))<br>最大値はありません。</p>`;
-            } else {
-                html += `<p>グラフは上に凸 (∩の形) なので、頂点で<strong>最大値</strong> \\(${p.q}\\) をとります。(x=\\(${p.p}\\))<br>最小値はありません。</p>`;
-            }
-        } else { // Level 2
+            canvas.style.display = 'none'; // レベル1ではグラフを非表示
+            html += `<p>この式から、頂点は (\\(${p.p}, ${p.q}\\)) です。</p>`;
+            html += p.a > 0 ? `<p>グラフは下に凸 (∪の形) なので、頂点で<strong>最小値</strong> \\(${p.q}\\) (x=\\(${p.p}\\))をとります。<br>最大値はありません。</p>` : `<p>グラフは上に凸 (∩の形) なので、頂点で<strong>最大値</strong> \\(${p.q}\\) (x=\\(${p.p}\\))をとります。<br>最小値はありません。</p>`;
+        } else {
+            canvas.style.display = 'block'; // レベル2ではグラフを表示
             const axisX = p.p;
-            html += `<p>平方完成すると、軸は直線 \\(x = ${axisX}\\) であることが分かります。</p>`;
-            html += `<p>次に、軸と定義域 \\(${p.d1} \\le x \\le ${p.d2}\\) の位置関係を考えます。</p><ul>`;
-            if (axisX < p.d1) { // 軸が定義域の左
-                 html += `<li>軸 (x=${axisX}) は定義域の左側にあります。</li><li>よって、定義域の左端 \\(x=${p.d1}\\) で最小値、右端 \\(x=${p.d2}\\) で最大値をとります。</li>`;
-            } else if (axisX > p.d2) { // 軸が定義域の右
-                 html += `<li>軸 (x=${axisX}) は定義域の右側にあります。</li><li>よって、定義域の左端 \\(x=${p.d1}\\) で最大値、右端 \\(x=${p.d2}\\) で最小値をとります。</li>`;
-            } else { // 軸が定義域の中
-                html += `<li>軸 (x=${axisX}) は定義域の中にあります。</li>`;
-                if(p.a > 0){
-                     html += `<li>下に凸のグラフなので、頂点 (x=${axisX}) で最小値をとります。</li><li>最大値は、軸から遠い方の定義域の端でとります。</li>`;
-                } else {
-                     html += `<li>上に凸のグラフなので、頂点 (x=${axisX}) で最大値をとります。</li><li>最小値は、軸から遠い方の定義域の端でとります。</li>`;
-                }
+            html += `<p>平方完成すると、軸は直線 \\(x = ${axisX}\\) であることが分かります。</p><p>次に、下のグラフのように軸と定義域 \\(${p.d1} \\le x \\le ${p.d2}\\) の位置関係を考えます。</p><ul>`;
+            if (axisX < p.d1) {
+                 html += `<li>軸 (赤線) は定義域 (緑線) の<strong>左外側</strong>にあります。</li>`;
+                 html += p.a > 0 ? `<li>したがって、軸に最も近い定義域の左端 (x=${p.d1}) で最小値、最も遠い右端 (x=${p.d2}) で最大値をとります。</li>` : `<li>したがって、軸に最も近い定義域の左端 (x=${p.d1}) で最大値、最も遠い右端 (x=${p.d2}) で最小値をとります。</li>`;
+            } else if (axisX > p.d2) {
+                 html += `<li>軸 (赤線) は定義域 (緑線) の<strong>右外側</strong>にあります。</li>`;
+                 html += p.a > 0 ? `<li>したがって、軸に最も近い定義域の右端 (x=${p.d2}) で最小値、最も遠い左端 (x=${p.d1}) で最大値をとります。</li>` : `<li>したがって、軸に最も近い定義域の右端 (x=${p.d2}) で最大値、最も遠い左端 (x=${p.d1}) で最小値をとります。</li>`;
+            } else {
+                html += `<li>軸 (赤線) は定義域 (緑線) の<strong>内側</strong>にあります。</li>`;
+                html += p.a > 0 ? `<li>下に凸のグラフなので、頂点 (x=${axisX}) で最小値をとります。</li><li>最大値は、軸から最も遠い定義域の端 (x=${p.maxX}) でとります。</li>` : `<li>上に凸のグラフなので、頂点 (x=${axisX}) で最大値をとります。</li><li>最小値は、軸から最も遠い定義域の端 (x=${p.minX}) でとります。</li>`;
             }
             html += `</ul><p><b>[正解]</b> 最大値: ${p.maxValue} (x=${p.maxX}), 最小値: ${p.minValue} (x=${p.minX})</p>`;
+            drawExplanationGraph(p);
         }
-        html += `<button class="btn" onclick="resumeGame()">次の問題へ</button>`;
-        explanationArea.innerHTML = html;
-        explanationArea.style.display = 'block';
+        
+        explanationTextArea.innerHTML = html;
+        document.getElementById('explanation-area').style.display = 'block';
         MathJax.typesetPromise();
     }
+    
+    // ▼▼▼ グラフ描画関数 ▼▼▼
+    function drawExplanationGraph(p) {
+        if (explanationChart) { explanationChart.destroy(); }
+        const ctx = document.getElementById('explanation-chart').getContext('2d');
+        
+        const func = x => p.a * (x - p.p)**2 + p.q;
+        
+        // 描画範囲を決定
+        const xMin = Math.min(p.d1, p.p) - 2;
+        const xMax = Math.max(p.d2, p.p) + 2;
+        const yValues = [func(p.d1), func(p.d2), p.q];
+        const yMin = Math.min(...yValues) - 5;
+        const yMax = Math.max(...yValues) + 5;
 
-    function calculateScore(timeMillis, level) {
+        // データセットを作成
+        const parabolaData = [];
+        for (let x = xMin; x <= xMax; x += 0.2) {
+            parabolaData.push({x: x, y: func(x)});
+        }
+        
+        explanationChart = new Chart(ctx, {
+            type: 'scatter',
+            data: {
+                datasets: [{
+                    label: 'y = f(x)',
+                    data: parabolaData,
+                    borderColor: 'rgb(54, 162, 235)',
+                    backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                    showLine: true,
+                    pointRadius: 0,
+                    borderWidth: 3
+                }, {
+                    label: '軸',
+                    data: [{x: p.p, y: yMin}, {x: p.p, y: yMax}],
+                    borderColor: 'rgb(255, 99, 132)',
+                    showLine: true,
+                    borderDash: [5, 5],
+                    pointRadius: 0,
+                    borderWidth: 2
+                }, {
+                    label: '定義域',
+                    data: [{x: p.d1, y: yMin}, {x: p.d1, y: yMax}],
+                    borderColor: 'rgb(75, 192, 192)',
+                    showLine: true,
+                    pointRadius: 0,
+                    borderWidth: 2
+                }, {
+                    label: '定義域',
+                    data: [{x: p.d2, y: yMin}, {x: p.d2, y: yMax}],
+                    borderColor: 'rgb(75, 192, 192)',
+                    showLine: true,
+                    pointRadius: 0,
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                scales: { x: { min: xMin, max: xMax }, y: { min: yMin, max: yMax } },
+                plugins: { legend: { display: false } },
+                animation: false
+            }
+        });
+    }
+
+    function calculatePotentialScore(timeMillis, level, qIndex) {
         const timeSeconds = timeMillis / 1000;
-        const BASE_SCORE = 10000;
+        const BASE_SCORES = [8000, 10000, 12000];
         const levelMultiplier = (level === 1) ? 1.0 : 1.5;
         const timePenalty = timeSeconds * 10;
-        const rawScore = (BASE_SCORE - timePenalty) * levelMultiplier;
+        const rawScore = (BASE_SCORES[qIndex] - timePenalty) * levelMultiplier;
         return Math.round(Math.max(100, rawScore));
     }
 
     function endGame() {
         clearInterval(timerInterval);
-        gameState.totalScore = calculateScore(gameState.elapsedTime, gameState.level);
+        const finalScore = gameState.questionScores.reduce((sum, score) => sum + score, 0);
         document.getElementById('game-screen').style.display = 'none';
         document.getElementById('result-screen').style.display = 'block';
-        document.getElementById('final-score').textContent = gameState.totalScore;
+        document.getElementById('final-score').textContent = finalScore;
         document.getElementById('nickname').value = gameState.nickname;
         const highScoreKey = `highScore_level${gameState.level}`;
         const currentHighScore = parseInt(localStorage.getItem(highScoreKey) || '0');
-        if (gameState.totalScore > currentHighScore) {
-            localStorage.setItem(highScoreKey, gameState.totalScore);
-        }
+        if (finalScore > currentHighScore) { localStorage.setItem(highScoreKey, finalScore); }
+        gameState.finalScore = finalScore;
     }
 
     async function saveScore() {
         const saveButton = document.querySelector('#result-screen .btn-secondary');
         saveButton.disabled = true;
         saveButton.textContent = '登録中...';
-        const payload = { nickname: gameState.nickname, score: gameState.totalScore, level: gameState.level };
+        const payload = { nickname: gameState.nickname, score: gameState.finalScore, level: gameState.level };
         try {
             await fetch(GAS_WEB_APP_URL, { method: 'POST', mode: 'no-cors', cache: 'no-cache', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
             saveButton.textContent = '登録完了！';
@@ -231,10 +294,47 @@
             saveButton.disabled = false;
         }
     }
-
-    function handleCheckbox(type) { const isChecked = document.getElementById(`${type}-none`).checked; document.getElementById(`${type}-val`).disabled = isChecked; document.getElementById(`${type}-x`).disabled = isChecked; }
-    function generateLevel1() { const a = (Math.random() < 0.5) ? 1 : -1, p = getNonZeroRandomInt(-5, 5), q = getNonZeroRandomInt(-8, 8); gameState.currentProblem = { a, p, q }; const b = -2 * a * p, c = a * p * p + q; document.getElementById('problem-display').innerHTML = `<p>\\[ y = ${formatCoefficient(a, 'x^2', true)} ${formatCoefficient(b, 'x')} ${formatCoefficient(c)} \\]</p>`; document.getElementById('answer-form').innerHTML = `<p>最大値・最小値を求め、値がない場合は「なし」にチェック</p><div class="input-group" style="justify-content: left;"><label for="max-val">最大値:</label><input type="text" id="max-val" oninput="sanitizeInput(this)"><span>(x=</span><input type="text" id="max-x" oninput="sanitizeInput(this)"><span>)</span><label style="margin-left:10px;"><input type="checkbox" id="max-none" onchange="handleCheckbox('max')">なし</label></div><div class="input-group" style="justify-content: left;"><label for="min-val">最小値:</label><input type="text" id="min-val" oninput="sanitizeInput(this)"><span>(x=</span><input type="text" id="min-x" oninput="sanitizeInput(this)"><span>)</span><label style="margin-left:10px;"><input type="checkbox" id="min-none" onchange="handleCheckbox('min')">なし</label></div><button class="btn" onclick="checkAnswer()">解答</button>`; }
-    function generateLevel2() { const a = (Math.random() < 0.5) ? 1 : -1, p = getRandomInt(-4, 4), q = getRandomInt(-8, 8); const d1 = p - getRandomInt(1, 4), d2 = p + getRandomInt(1, 4); gameState.currentProblem = { a, p, q, d1, d2 }; const b = -2 * a * p, c = a * p * p + q; const y1 = a * (d1-p)**2 + q, y2 = a * (d2-p)**2 + q; let maxValue, maxX, minValue, minX; if (a > 0) { minValue = q; minX = p; maxValue = Math.max(y1, y2); maxX = y1 >= y2 ? d1 : d2; } else { maxValue = q; maxX = p; minValue = Math.min(y1, y2); minX = y1 <= y2 ? d1 : d2; } gameState.currentProblem.maxValue = maxValue; gameState.currentProblem.maxX = maxX; gameState.currentProblem.minValue = minValue; gameState.currentProblem.minX = minX; document.getElementById('problem-display').innerHTML = `<p>\\[ y = ${formatCoefficient(a, 'x^2', true)} ${formatCoefficient(b, 'x')} ${formatCoefficient(c)} \\quad (${d1} \\le x \\le ${d2}) \\]</p>`; document.getElementById('answer-form').innerHTML = `<p>最大値と最小値、そのときのxの値を答えよ。</p><div class="input-group" style="justify-content: left;"><label for="max-val">最大値:</label><input type="text" id="max-val" oninput="sanitizeInput(this)"><span>(x=</span><input type="text" id="max-x" oninput="sanitizeInput(this)"><span>)</span></div><div class="input-group" style="justify-content: left;"><label for="min-val">最小値:</label><input type="text" id="min-val" oninput="sanitizeInput(this)"><span>(x=</span><input type="text" id="min-x" oninput="sanitizeInput(this)"><span>)</span></div><button class="btn" onclick="checkAnswer()">解答</button>`; }
+    
+    function generateQuestion() {
+        let a, p, q, d1, d2, mathExpression = '', answerFormHTML = '';
+        const qIndex = gameState.questionIndex;
+        if (qIndex === 0) { a = (Math.random() < 0.5) ? 1 : -1; }
+        else if (qIndex === 1) { a = 1; }
+        else { a = [-2, -1, 2][getRandomInt(0, 2)]; }
+        if (gameState.level === 2) {
+            d1 = getRandomInt(-5, 0); d2 = d1 + getRandomInt(4, 8);
+            const axisCase = getRandomInt(1, 3);
+            if (axisCase === 1) { p = getRandomInt(d1, d2); }
+            else if (axisCase === 2) { p = d1 - getRandomInt(1, 3); }
+            else { p = d2 + getRandomInt(1, 3); }
+        } else { p = getNonZeroRandomInt(-5, 5); }
+        q = getNonZeroRandomInt(-8, 8);
+        if (qIndex === 0) { mathExpression = `y = ${formatCoefficient(a, `(x ${p > 0 ? '-' : '+'} ${Math.abs(p)})^2`, true)} ${formatCoefficient(q)}`; }
+        else { const b = -2 * a * p; const c = a * p * p + q; mathExpression = `y = ${formatCoefficient(a, 'x^2', true)} ${formatCoefficient(b, 'x')} ${formatCoefficient(c)}`; }
+        gameState.currentProblem = { a, p, q };
+        if (gameState.level === 1) {
+            answerFormHTML = `<p>最大値・最小値を求め、値がない場合は「なし」にチェック</p><div class="input-group" style="justify-content: left;"><label>最大値:</label><input type="text" id="max-val" oninput="sanitizeInput(this)"><span>(x=</span><input type="text" id="max-x" oninput="sanitizeInput(this)"><span>)</span><label style="margin-left:10px;"><input type="checkbox" id="max-none">なし</label></div><div class="input-group" style="justify-content: left;"><label>最小値:</label><input type="text" id="min-val" oninput="sanitizeInput(this)"><span>(x=</span><input type="text" id="min-x" oninput="sanitizeInput(this)"><span>)</span><label style="margin-left:10px;"><input type="checkbox" id="min-none">なし</label></div><button class="btn" onclick="checkAnswer()">解答</button>`;
+        } else {
+            Object.assign(gameState.currentProblem, { d1, d2 });
+            mathExpression += ` \\quad (${d1} \\le x \\le ${d2})`;
+            const y1 = a * (d1-p)**2 + q, y2 = a * (d2-p)**2 + q;
+            let maxValue, maxX, minValue, minX;
+            if (a > 0) {
+                if (p < d1) { minValue = y1; minX = d1; maxValue = y2; maxX = d2; }
+                else if (p > d2) { minValue = y2; minX = d2; maxValue = y1; maxX = d1; }
+                else { minValue = q; minX = p; maxValue = Math.max(y1, y2); maxX = Math.abs(d1 - p) > Math.abs(d2 - p) ? d1 : d2; }
+            } else {
+                if (p < d1) { maxValue = y1; maxX = d1; minValue = y2; minX = d2; }
+                else if (p > d2) { maxValue = y2; maxX = d2; minValue = y1; minX = d1; }
+                else { maxValue = q; maxX = p; minValue = Math.min(y1, y2); minX = Math.abs(d1 - p) > Math.abs(d2 - p) ? d1 : d2; }
+            }
+            Object.assign(gameState.currentProblem, { maxValue, maxX, minValue, minX });
+            answerFormHTML = `<p>最大値と最小値、そのときのxの値を答えよ。</p><div class="input-group" style="justify-content: left;"><label>最大値:</label><input type="text" id="max-val" oninput="sanitizeInput(this)"><span>(x=</span><input type="text" id="max-x" oninput="sanitizeInput(this)"><span>)</span></div><div class="input-group" style="justify-content: left;"><label>最小値:</label><input type="text" id="min-val" oninput="sanitizeInput(this)"><span>(x=</span><input type="text" id="min-x" oninput="sanitizeInput(this)"><span>)</span></div><button class="btn" onclick="checkAnswer()">解答</button>`;
+        }
+        const problemText = `\\[ ${mathExpression} \\]`;
+        document.getElementById('problem-display').innerHTML = `<p>${problemText}</p>`;
+        document.getElementById('answer-form').innerHTML = answerFormHTML;
+    }
 </script>
 </body>
 </html>
